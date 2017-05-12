@@ -36,9 +36,9 @@ public class Client {
 				}
 			}
 
-			
+
 			socket.close();
-			
+
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -46,8 +46,8 @@ public class Client {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-			
+
+
 	}
 
 }

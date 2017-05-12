@@ -3,10 +3,6 @@ package sample;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.io.ObjectInputStream.GetField;
-import java.net.ServerSocket;
-import java.net.Socket;
-
 
 public class Server implements Runnable {
 
@@ -53,6 +49,8 @@ public class Server implements Runnable {
                     out.write(bytes, 0, count);
                 }
 
+                out.close();
+                in.close();
             }
         } catch (IOException e1) {
             // TODO Auto-generated catch block

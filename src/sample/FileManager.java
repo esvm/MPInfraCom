@@ -30,6 +30,9 @@ public class FileManager {
 
     File file;
 
+    int port = 2020;
+    String address = "localhost";
+
     @FXML
     void bt_pickClick(ActionEvent event) {
         FileChooser fileChooser = new FileChooser();
@@ -42,59 +45,52 @@ public class FileManager {
     @FXML
     void bt_sendClick(ActionEvent event) {
         final File file2 = file;
-        if(file2 != null)
-        {
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    int port = 2020;
-                    String address = "localhost";
-                    try {
-                        Socket socket = new Socket(address, port);
-                        OutputStream stream = socket.getOutputStream();
 
-                        if(file2 != null)
-                        {
-                            BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file2));
+        if (file2 != null) {
+            new Thread(() -> {
+                try {
+                    Socket socket = new Socket(Controller.host, Controller.port);
+                    OutputStream stream = socket.getOutputStream();
 
-                            byte[] bytes = new byte[16*1024];
-                            int count = 0;
-                            int current = 0;
+                    if (file2 != null) {
+                        BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file2));
 
-                            byte[] header = new byte[64];
+                        byte[] bytes = new byte[16 * 1024];
+                        int count = 0;
+                        int current = 0;
 
-                            byte[] path = file2.getPath().getBytes();
+                        byte[] header = new byte[64];
 
-                            for (int i = 0; i < path.length; i++) {
-                                header[i] = path[i];
-                            }
+                        byte[] path = file2.getPath().getBytes();
 
-                            for (int i = path.length; i < 64; i++) {
-                                header[i] = 0;
-                            }
-
-
-                            stream.write(header, 0, 64);
-
-                            while((count = bis.read(bytes)) > 0)
-                            {
-                                current += count;
-                                progress.setProgress((current / Math.ceil(file2.length())));
-                                stream.write(bytes, 0, count);
-                            }
-                            stream.write("\n".getBytes());
+                        for (int i = 0; i < path.length; i++) {
+                            header[i] = path[i];
                         }
 
-                        socket.close();
-                    } catch (UnknownHostException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
+                        for (int i = path.length; i < 64; i++) {
+                            header[i] = 0;
+                        }
+
+
+                        stream.write(header, 0, 64);
+
+                        while ((count = bis.read(bytes)) > 0) {
+                            current += count;
+                            progress.setProgress((current / Math.ceil(file2.length())));
+                            stream.write(bytes, 0, count);
+                        }
+                        stream.write("\n".getBytes());
                     }
 
+                    socket.close();
+                } catch (UnknownHostException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
                 }
+
             }).start();
         }
     }
