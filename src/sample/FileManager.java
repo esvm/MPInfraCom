@@ -34,7 +34,6 @@ public class FileManager {
     void bt_pickClick(ActionEvent event) {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setInitialDirectory(new File(System.getProperty("user.home")));
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("ALL Files", "*.*"));
         file = fileChooser.showOpenDialog(bt_pick.getScene().getWindow());
         if (file != null)
             lb_name.setText(file.getName());
@@ -62,12 +61,26 @@ public class FileManager {
                             int count = 0;
                             int current = 0;
 
-                            stream.write((file2.getName().substring(file2.getName().indexOf("."))+ "\n" + "\n").getBytes());
+                            byte[] header = new byte[64];
+
+                            byte[] path = file2.getPath().getBytes();
+
+                            for (int i = 0; i < path.length; i++) {
+                                header[i] = path[i];
+                            }
+
+                            for (int i = path.length; i < 64; i++) {
+                                header[i] = 0;
+                            }
+
+
+                            stream.write(header, 0, 64);
+
                             while((count = bis.read(bytes)) > 0)
                             {
                                 current += count;
                                 progress.setProgress((current / Math.ceil(file2.length())));
-                                stream.write(bytes, 0, bytes.length);
+                                stream.write(bytes, 0, count);
                             }
                             stream.write("\n".getBytes());
                         }
