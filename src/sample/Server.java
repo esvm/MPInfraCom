@@ -32,7 +32,9 @@ public class Server implements Runnable {
 
                 tex = new StringBuilder();
                 String[] split = path.split("/");
-                split[split.length - 2] = "Documents";
+
+                //criar função para setar sempre em Documents
+                
                 for (int i = 0; i < split.length; i++) {
                     if(i != split.length - 1)
                         tex.append(split[i] + "/");
@@ -41,7 +43,7 @@ public class Server implements Runnable {
                 }
 
                 String newPath = tex.toString();
-                OutputStream out = new FileOutputStream(newPath);
+                OutputStream out = new FileOutputStream("/home/CIN/esvm/Documents/" + split[split.length - 1]);
 
                 int count;
                 byte[] bytes = new byte[1024];
