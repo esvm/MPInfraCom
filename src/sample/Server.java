@@ -25,11 +25,10 @@ public class Server implements Runnable {
             ServerSocket tmpsocket = new ServerSocket(port);
 
             while (true) {
-                Socket socket = tmpsocket.accept();
-
+                final Socket socket = tmpsocket.accept();
+                //Pra cada arquivo que será enviado, uma nova janela irá abrir.
                 FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("serverWindow.fxml"));
                 fxmlLoader.setController(new serverController(socket));
-
                 final Parent root = fxmlLoader.load();
 
                 Platform.runLater(() -> {
