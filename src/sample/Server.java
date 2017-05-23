@@ -1,5 +1,15 @@
 package sample;
 
+import javafx.application.Platform;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -13,46 +23,20 @@ public class Server implements Runnable {
 
         try {
             ServerSocket tmpsocket = new ServerSocket(port);
-            InputStream in;
+
             while (true) {
-                final Socket socket = tmpsocket.accept();
+                Socket socket = tmpsocket.accept();
 
-                in = socket.getInputStream();
-                //BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                byte[] pathby = new byte[64];
-                in.read(pathby, 0, 64);
-                StringBuilder tex = new StringBuilder();
-                for (int i = 0; i < 64; i++) {
-                    if(pathby[i] != 0)
-                        tex.append(new String(new byte[] {pathby[i]}));
-                    else
-                        break;
-                }
-                String path = tex.toString(); //caminho com nome do arquivo
+                FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("serverWindow.fxml"));
+                fxmlLoader.setController(new serverController(socket));
 
-                tex = new StringBuilder();
-                String[] split = path.split("/");
+                final Parent root = fxmlLoader.load();
 
-                //criar função para setar sempre em Documents
-                
-                for (int i = 0; i < split.length; i++) {
-                    if(i != split.length - 1)
-                        tex.append(split[i] + "/");
-                    else
-                        tex.append(split[i]);
-                }
-
-                String newPath = tex.toString();
-                OutputStream out = new FileOutputStream("/home/CIN/esvm/Documents/" + split[split.length - 1]);
-
-                int count;
-                byte[] bytes = new byte[1024];
-                while ((count = in.read(bytes, 0, bytes.length)) > 0) {
-                    out.write(bytes, 0, count);
-                }
-
-                out.close();
-                in.close();
+                Platform.runLater(() -> {
+                    Stage stage = new Stage();
+                    stage.setScene(new Scene(root, 800, 600));
+                    stage.show();
+                });
             }
         } catch (IOException e1) {
             // TODO Auto-generated catch block

@@ -1,5 +1,6 @@
 package sample;
 
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -28,9 +29,11 @@ public class FileManager {
     @FXML
     private ProgressBar progress;
 
-    File file;
+    @FXML
+    private Label lb_rtt;
 
-    int port = 2020;
+    public static File file;
+
     String address = "localhost";
 
     @FXML
@@ -40,7 +43,11 @@ public class FileManager {
         file = fileChooser.showOpenDialog(bt_pick.getScene().getWindow());
         if (file != null)
             lb_name.setText(file.getName());
+
+        lb_rtt.setText(rtt + "");
     }
+
+    public static long rtt = 0;
 
     @FXML
     void bt_sendClick(ActionEvent event) {
@@ -49,17 +56,29 @@ public class FileManager {
         if (file2 != null) {
             new Thread(() -> {
                 try {
-                    Socket socket = new Socket(Controller.host, Controller.port);
+                    final Socket socket = new Socket(Controller.host, Controller.port);
                     OutputStream stream = socket.getOutputStream();
-
+                    InputStream in = socket.getInputStream();
                     if (file2 != null) {
                         BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file2));
 
+                        //RTT INIT
+                        byte[] rttMessage = "RTTSE\n".getBytes();
+                        long start = System.currentTimeMillis();
+                        stream.write(rttMessage, 0, 6);
+                        in.read(rttMessage, 0, 6);
+                        long end = System.currentTimeMillis();
+                        rtt = Math.abs(start - end);
+                        Platform.runLater(() -> lb_rtt.setText(rtt + "") );
+                        //RTT END
+
+
+                        //HEADER INIT
                         byte[] bytes = new byte[16 * 1024];
                         int count = 0;
-                        int current = 0;
+                        long current = 0;
 
-                        byte[] header = new byte[64];
+                        byte[] header = new byte[256];
 
                         byte[] path = file2.getPath().getBytes();
 
@@ -67,19 +86,20 @@ public class FileManager {
                             header[i] = path[i];
                         }
 
-                        for (int i = path.length; i < 64; i++) {
+                        for (int i = path.length; i < 256; i++) {
                             header[i] = 0;
                         }
+                        stream.write(header, 0, 256);
+                        //HEADER END
 
-
-                        stream.write(header, 0, 64);
-
+                        //FILE TRANSFER
                         while ((count = bis.read(bytes)) > 0) {
-                            current += count;
-                            progress.setProgress((current / Math.ceil(file2.length())));
                             stream.write(bytes, 0, count);
+                            current += count;
+                            final long send = current;
+                            Platform.runLater(() ->progress.setProgress((send / Math.ceil(file2.length()))));
                         }
-                        stream.write("\n".getBytes());
+
                     }
 
                     socket.close();
@@ -92,6 +112,7 @@ public class FileManager {
                 }
 
             }).start();
+
         }
     }
 

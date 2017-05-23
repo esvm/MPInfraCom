@@ -26,6 +26,8 @@ public class Controller {
     @FXML
     private TextField tf_port;
 
+
+
     @FXML
     void bt_okClick(ActionEvent event) throws IOException {
         port = Integer.parseInt(tf_port.getText());
@@ -37,8 +39,6 @@ public class Controller {
         stage.setTitle("File Transfer");
         stage.setScene(new Scene(root, 800, 600));
         stage.show();
+
     }
-
-
-
 }

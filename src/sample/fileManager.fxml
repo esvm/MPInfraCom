@@ -9,7 +9,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="sample.FileManager">
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="sample.FileManager">
    <children>
       <VBox minHeight="150.0" minWidth="300.0">
          <children>
@@ -30,5 +30,10 @@
             <ProgressBar fx:id="progress" prefWidth="200.0" progress="0.0" />
          </children>
       </VBox>
+      <Label fx:id="lb_rtt" text="RTT (ms) = ">
+         <VBox.margin>
+            <Insets left="10.0" top="30.0" />
+         </VBox.margin>
+      </Label>
    </children>
-</AnchorPane>
+</VBox>
