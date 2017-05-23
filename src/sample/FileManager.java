@@ -79,7 +79,7 @@ public class FileManager implements Initializable{
                         in.read(rttMessage, 0, 5);
                         long end = System.currentTimeMillis();
                         rtt = Math.abs(start - end);
-                        Platform.runLater(() -> lb_rtt.setText(rtt + "") );
+                        Platform.runLater(() -> lb_rtt.setText(lb_rtt.getText() + rtt));
                         //RTT END
 
 

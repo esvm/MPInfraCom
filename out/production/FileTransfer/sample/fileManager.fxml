@@ -13,7 +13,7 @@
    <children>
       <VBox minHeight="150.0" minWidth="300.0">
          <children>
-            <Label fx:id="lb_name" minHeight="30.0" minWidth="300.0" text="Label">
+            <Label fx:id="lb_name" minHeight="30.0" minWidth="300.0" text="File name">
                <font>
                   <Font size="14.0" />
                </font>
