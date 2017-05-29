@@ -16,10 +16,16 @@ import java.util.Optional;
 
 public class Server implements Runnable {
 
+    int port = 2020;
+
+    public Server(int port) {
+        this.port = port;
+    }
+
     @Override
     public void run() {
         // TODO Auto-generated method stub
-        int port = 2020;
+
 
         try {
             ServerSocket tmpsocket = new ServerSocket(port);

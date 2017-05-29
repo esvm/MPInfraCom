@@ -18,7 +18,7 @@ import java.util.ResourceBundle;
 /**
  * Created by esvm on 09/05/17.
  */
-public class FileManager implements Initializable{
+public class FileManager implements Initializable {
 
     @FXML
     private Button bt_send;
@@ -37,10 +37,46 @@ public class FileManager implements Initializable{
 
     public static File file;
 
-    final Socket socket;
+    private final Socket socket;
 
     public FileManager(Socket socket) {
         this.socket = socket;
+    }
+
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        //Esta Thread calcula o RTT atual da conexão a cada 500ms
+
+        new Thread(() -> {
+            while (true) {
+                try {
+                    final Socket socket2 = new Socket(Controller.host, 2021);
+                    DataOutputStream stream = new DataOutputStream(socket2.getOutputStream());
+                    DataInputStream in = new DataInputStream(socket2.getInputStream());
+                    //RTT INIT
+                    /*
+                        Para calcular o RTT estou enviando um pacote pequeno,de 5 bytes
+                        Salvo o tempo inicial
+                        Após receber um pacote de confirmação do servidor salvo o tempo final
+                        A diferença dos dois tempos é o meu RTT
+                        Em seguida coloco numa label
+                    */
+                    byte[] rttMessage = "RTTSE".getBytes();
+                    long start = System.currentTimeMillis();
+                    stream.write(rttMessage, 0, 5);
+                    in.read(rttMessage, 0, 5);
+                    long end = System.currentTimeMillis();
+                    rtt = Math.abs(start - end);
+
+                    Platform.runLater(() -> lb_rtt.setText("RTT = " + rtt + "ms"));
+                    //RTT END
+                    socket2.close();
+                    Thread.sleep(500);
+                } catch (IOException | InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 
     @FXML
@@ -74,16 +110,9 @@ public class FileManager implements Initializable{
                             e não apenas um cálculo de RTT que é feito na outra Thread
                          */
                         byte[] rttMessage = "RTTNO".getBytes();
-                        long start = System.currentTimeMillis();
-                        try {
-                            stream.write(rttMessage, 0, 5);
-                            in.read(rttMessage, 0, 5);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
+                        stream.write(rttMessage, 0, 5);
+                        in.read(rttMessage, 0, 5);
 
-                        long end = System.currentTimeMillis();
-                        rtt = Math.abs(start - end);
                         //RTT END
 
                         //HEADER INIT
@@ -119,7 +148,7 @@ public class FileManager implements Initializable{
                             stream.write(bytes, 0, count);
                             current += count;
                             final long send = current;
-                            Platform.runLater(() ->progress.setProgress((send / Math.ceil(file2.length()))));
+                            Platform.runLater(() -> progress.setProgress((send / Math.ceil(file2.length()))));
                         }
                     }
 
@@ -139,6 +168,7 @@ public class FileManager implements Initializable{
 
             });
 
+
             thread.setUncaughtExceptionHandler((t, e) -> {
                 e.printStackTrace();
 
@@ -155,47 +185,5 @@ public class FileManager implements Initializable{
         }
     }
 
-    @Override
-    public void initialize(URL location, ResourceBundle resources) {
-        //Esta Thread calcula o RTT atual da conexão a cada 500ms
-
-            new Thread(() -> {
-                while (true) {
-                    try {
-                        Socket socket = new Socket(Controller.host, Controller.port);
-                        OutputStream stream = socket.getOutputStream();
-                        InputStream in = socket.getInputStream();
-                        //RTT INIT
-                        /*
-                            Para calcular o RTT estou enviando um pacote pequeno,de 5 bytes
-                            Salvo o tempo inicial
-                            Após receber um pacote de confirmação do servidor salvo o tempo final
-                            A diferença dos dois tempos é o meu RTT
-                            Em seguida coloco numa label
-                         */
-                        byte[] rttMessage = "RTTSE".getBytes();
-                        long start = System.currentTimeMillis();
-                        try {
-                            stream.write(rttMessage, 0, 5);
-                            in.read(rttMessage, 0, 5);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-
-                        long end = System.currentTimeMillis();
-                        rtt = Math.abs(start - end);
-
-                        Platform.runLater(() -> lb_rtt.setText("RTT = " + rtt + "ms"));
-                        //RTT END
-                        socket.close();
-                        Thread.sleep(500);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }).start();
-    }
 
 }

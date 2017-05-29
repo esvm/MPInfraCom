@@ -45,8 +45,6 @@ public class serverController implements Initializable {
           Resumindo, coisa do Javafx. Sem ela, tudo que está aqui iria rodar e só depois a janela
            com a progress bar e tals iria abrir.
          */
-
-
         Thread thread = new Thread(() -> {
             try {
                 in = this.socket.getInputStream();
@@ -122,8 +120,7 @@ public class serverController implements Initializable {
                     socket.close();
                     //Depois que terminou a transferência, o tempo de Download é 0s.
 
-                    if (file[0][0].length() == len)
-                    {
+                    if (file[0][0].length() == len) {
                         Platform.runLater(() -> {
                             lb_time.setText(String.format("0s"));
 
@@ -139,9 +136,7 @@ public class serverController implements Initializable {
                                 stage.close();
                             }
                         });
-                    }
-                    else
-                    {
+                    } else {
                         Platform.runLater(() -> {
                             Alert alert = new Alert(Alert.AlertType.ERROR);
                             alert.setTitle("Finished");
