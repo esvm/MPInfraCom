@@ -6,13 +6,14 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
+import javafx.scene.control.*;
 import javafx.stage.FileChooser;
+import javafx.stage.Stage;
 
 import java.io.*;
 import java.net.Socket;
 import java.net.URL;
+import java.util.Optional;
 import java.util.ResourceBundle;
 
 
@@ -29,8 +30,10 @@ public class serverController implements Initializable {
     @FXML
     private Label lb_time;
 
-
+    private final File[][] file = {null};
     private final Socket socket;
+    InputStream in;
+    FileOutputStream out;
 
     public serverController(Socket socket) {
         this.socket = socket;
@@ -38,101 +41,166 @@ public class serverController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        /*Esta Thread é para que a janela não abra após a finalização do Download
+        /*Esta Thread é para que a janela não abra após a finalização do Download.
           Resumindo, coisa do Javafx. Sem ela, tudo que está aqui iria rodar e só depois a janela
            com a progress bar e tals iria abrir.
          */
-        new Thread(() -> {
-            try {
-                InputStream in = this.socket.getInputStream();
 
-                //RTT INIT
-                byte[] rttMessage = new byte[5];
-                in.read(rttMessage, 0, 5);
-                OutputStream rttOutput = this.socket.getOutputStream();
-                rttMessage = "RTTOK".getBytes();
-                rttOutput.write(rttMessage, 0, 5);
-                //RTT END
+
+        Thread thread = new Thread(() -> {
+            try {
+                in = this.socket.getInputStream();
 
                 //HEADER INIT
                 /*
-                    Criei um header com o caminho inicial do arquivo, mas acabei que não utilizei para nada.
-                    Poderia colocar para pegar o tamanho do arquivo, por exemplo.
-                    Enfim, é um Header de 256 caracteres. Para o que estava utilizando, é o suficiente.
-                 */
-                byte[] pathby = new byte[256];
-                in.read(pathby, 0, 256);
+                    Header com o tamanho do arquivo
+                */
+                byte[] size = new byte[256];
+                in.read(size, 0, 256);
                 StringBuilder tex = new StringBuilder();
                 for (int i = 0; i < 256; i++) {
-                    if (pathby[i] != 0)
-                        tex.append(new String(new byte[]{pathby[i]}));
+                    if (size[i] != 0)
+                        tex.append(new String(new byte[]{size[i]}));
                     else
                         break;
                 }
-                String path = tex.toString(); //caminho com nome do arquivo
+                long len = Long.parseLong(tex.toString()); //tamanho do arquivo
                 //HEADER END
 
 
                 //FILE RECEIVER
-                /* Escolher onde o usuário quer salvar o arquivo
-                   O while é pra garantir que o usuário já escolheu o local e nome do arquivo que será salvo
-                 */
+                /*
+                    Escolher onde o usuário quer salvar o arquivo
+                    O while é pra garantir que o usuário já escolheu o local e nome do arquivo que será salvo
+                */
                 FileChooser fileChooser = new FileChooser();
                 fileChooser.setInitialDirectory(new File(System.getProperty("user.home")));
                 fileChooser.setTitle("Save");
-                final File[] file = new File[1];
-                Platform.runLater(() ->  file[0] = fileChooser.showSaveDialog(progress.getScene().getWindow()));
 
-                while(file[0] == null){
+                Platform.runLater(() -> file[0] = new File[]{fileChooser.showSaveDialog(progress.getScene().getWindow())});
+
+                while (file[0] == null) {
                     Thread.sleep(500);
                 }
 
-                FileOutputStream out = new FileOutputStream(file[0]); //Vai escrever o arquivo no diretório e nome especificado pelo usuário
+                if (file[0][0] != null) {
+                    out = new FileOutputStream(file[0][0]); //Vai escrever o arquivo no diretório e nome especificado pelo usuário
 
-                long current = 0; //quantos bytes já foram recebidos
-                final long available = FileManager.file.length(); //Tamanho total do arquivo
-                int count;
-                byte[] bytes = new byte[16 * 1024];
-                int interval = 0;
-                long start = System.nanoTime(); //tempo inicial da transferência
-                while ((count = in.read(bytes, 0, bytes.length)) > 0) {
-                    current += count;
-                    out.write(bytes, 0, count);
-                    final long received = current;
-                    long elapsedTime = System.nanoTime() - start; //Tempo que se passou desde o início da transferência
-                    /*A velocidade é dada pela quantidade de bytes já escritos e o tempo que se passou
-                      O tempo está em nanossegundos, portanto multiplica por 10^-9 para converter para segundos
-                     */
-                    double speed = received / (elapsedTime * Math.pow(10, -9));
-                    //seta o progresso atual do download
-                    Platform.runLater(() ->
-                            progress.setProgress(received / Math.ceil(available))
-                    );
-                    /*A cada 512 para não ficar escrevendo o tempo restante sempre
-                      Tinha setado 1024, mas achei que ficou muito
-                      O tempo restante é a quantidade de bytes que restam a ser escritos sobre a velocidade
-                     */
-
-                    if (interval % 512 == 0)
+                    long current = 0; //quantos bytes já foram recebidos
+                    final long available = len; //Tamanho total do arquivo
+                    int count;
+                    byte[] bytes = new byte[16 * 1024];
+                    int interval = 0;
+                    long start = System.nanoTime(); //tempo inicial da transferência
+                    while ((count = in.read(bytes, 0, bytes.length)) > 0) {
+                        current += count;
+                        out.write(bytes, 0, count);
+                        final long received = current;
+                        long elapsedTime = System.nanoTime() - start; //Tempo que se passou desde o início da transferência
+                        /*
+                            A velocidade é dada pela quantidade de bytes já escritos e o tempo que se passou
+                            O tempo está em nanossegundos, portanto multiplica por 10^-9 para converter para segundos
+                        */
+                        double speed = received / (elapsedTime * Math.pow(10, -9));
+                        //seta o progresso atual do download
                         Platform.runLater(() ->
-                                lb_time.setText(String.format("%.2fs", (available - received) / speed))
+                                progress.setProgress(received / Math.ceil(available))
                         );
-                    interval++;
+                        /*
+                            A cada 512 para não ficar escrevendo o tempo restante sempre
+                            Tinha setado 1024, mas achei que ficou muito
+                            O tempo restante é a quantidade de bytes que restam a ser escritos sobre a velocidade
+                        */
+                        if (interval % 512 == 0)
+                            Platform.runLater(() ->
+                                    lb_time.setText(String.format("%.2fs", (available - received) / speed))
+                            );
+                        interval++;
+                    }
+                    in.close();
+                    out.close();
+                    socket.close();
+                    //Depois que terminou a transferência, o tempo de Download é 0s.
+
+                    if (file[0][0].length() == len)
+                    {
+                        Platform.runLater(() -> {
+                            lb_time.setText(String.format("0s"));
+
+                            Alert alert = new Alert(Alert.AlertType.WARNING);
+                            alert.setTitle("Finished");
+                            alert.setHeaderText("Transfer completed!");
+                            Button exitButton = (Button) alert.getDialogPane().lookupButton(ButtonType.OK);
+                            exitButton.setText("OK");
+
+                            Optional<ButtonType> result = alert.showAndWait();
+                            if (result.isPresent() && result.get() == ButtonType.OK) {
+                                Stage stage = (Stage) lb_time.getScene().getWindow();
+                                stage.close();
+                            }
+                        });
+                    }
+                    else
+                    {
+                        Platform.runLater(() -> {
+                            Alert alert = new Alert(Alert.AlertType.ERROR);
+                            alert.setTitle("Finished");
+                            alert.setHeaderText("Transfer Failed!");
+                            Button exitButton = (Button) alert.getDialogPane().lookupButton(ButtonType.OK);
+                            exitButton.setText("OK");
+
+                            Optional<ButtonType> result = alert.showAndWait();
+                            if (result.isPresent() && result.get() == ButtonType.OK) {
+                                Stage stage = (Stage) lb_time.getScene().getWindow();
+                                stage.close();
+                                if (file[0] != null && file[0][0] != null)
+                                    file[0][0].delete();
+                            }
+
+                        });
+                    }
+
+
+                } else {
+                    Platform.runLater(() -> {
+
+                        if (file[0] != null && file[0][0] != null)
+                            file[0][0].delete();
+
+                        Stage stage = (Stage) lb_time.getScene().getWindow();
+                        stage.close();
+                    });
+
                 }
-                //Depois que terminou a transferência, o tempo de Download é 0s.
-                Platform.runLater(() ->
-                        lb_time.setText(String.format("0s"))
-                );
-                in.close();
-                out.close();
-            } catch (IOException e1) {
+
+            } catch (IOException | InterruptedException e1) {
                 // TODO Auto-generated catch block
                 e1.printStackTrace();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+
+                try {
+                    in.close();
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                throw new RuntimeException(e1);
             }
 
+        });
 
-        }).start();
+        thread.setUncaughtExceptionHandler((t, e) -> {
+            e.printStackTrace();
+
+            Platform.runLater(() -> {
+                if (file[0][0] != null)
+                    file[0][0].delete();
+
+            });
+
+        });
+
+        thread.start();
+
+
     }
 }

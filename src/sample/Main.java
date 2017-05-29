@@ -1,6 +1,7 @@
 package sample;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -20,6 +21,10 @@ public class Main extends Application {
         primaryStage.setTitle("File Transfer");
         primaryStage.setScene(new Scene(root, 800, 600));
         primaryStage.show();
+
+        primaryStage.setOnCloseRequest(event ->
+            Platform.exit()
+        );
         /*
             Esta é a Thread do servidor.
             Foi criada no Main porque este só é executado na primeira vez que o programa é aberto

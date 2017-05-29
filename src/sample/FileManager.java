@@ -37,7 +37,11 @@ public class FileManager implements Initializable{
 
     public static File file;
 
-    String address = "localhost";
+    final Socket socket;
+
+    public FileManager(Socket socket) {
+        this.socket = socket;
+    }
 
     @FXML
     void bt_pickClick(ActionEvent event) {
@@ -57,9 +61,8 @@ public class FileManager implements Initializable{
         final File file2 = file;
 
         if (file2 != null) {
-            new Thread(() -> {
+            Thread thread = new Thread(() -> {
                 try {
-                    final Socket socket = new Socket(Controller.host, Controller.port);
                     OutputStream stream = socket.getOutputStream();
                     InputStream in = socket.getInputStream();
                     if (file2 != null) {
@@ -67,21 +70,21 @@ public class FileManager implements Initializable{
 
                         //RTT INIT
                         /*
-                            Para calcular o RTT estou enviando um pacote pequeno,de 5 bytes
-                            Salvo o tempo inicial
-                            Após receber um pacote de confirmação do servidor salvo o tempo final
-                            A diferença dos dois tempos é o meu RTT
-                            Em seguida coloco numa label
+                            Aqui eu passo a mensagem de RTTNO indicando que é uma transferência de arquivo
+                            e não apenas um cálculo de RTT que é feito na outra Thread
                          */
-                        byte[] rttMessage = "RTTSE".getBytes();
+                        byte[] rttMessage = "RTTNO".getBytes();
                         long start = System.currentTimeMillis();
-                        stream.write(rttMessage, 0, 5);
-                        in.read(rttMessage, 0, 5);
+                        try {
+                            stream.write(rttMessage, 0, 5);
+                            in.read(rttMessage, 0, 5);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
                         long end = System.currentTimeMillis();
                         rtt = Math.abs(start - end);
-                        Platform.runLater(() -> lb_rtt.setText("RTT = " + rtt + "ms"));
                         //RTT END
-
 
                         //HEADER INIT
                         /*
@@ -96,7 +99,7 @@ public class FileManager implements Initializable{
 
                         byte[] header = new byte[256];
 
-                        byte[] path = file2.getPath().getBytes();
+                        byte[] path = String.valueOf(file2.length()).getBytes();
 
                         for (int i = 0; i < path.length; i++) {
                             header[i] = path[i];
@@ -120,22 +123,79 @@ public class FileManager implements Initializable{
                         }
                     }
 
+                    Platform.runLater(() -> {
+                        lb_name.setText("Transfer Completed!");
+                        bt_send.setDisable(true);
+                        bt_pick.setDisable(true);
+                    });
+
                     socket.close();
-                } catch (UnknownHostException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
                 } catch (IOException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
+
+                    throw new RuntimeException(e);
                 }
 
-            }).start();
+
+            });
+
+            thread.setUncaughtExceptionHandler((t, e) -> {
+                e.printStackTrace();
+
+                Platform.runLater(() -> {
+                    lb_name.setText("Transfer Failed");
+                    bt_send.setDisable(true);
+                    bt_pick.setDisable(true);
+                    progress.setProgress(0);
+                });
+            });
+
+            thread.start();
 
         }
     }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        //Esta Thread calcula o RTT atual da conexão a cada 500ms
 
+            new Thread(() -> {
+                while (true) {
+                    try {
+                        Socket socket = new Socket(Controller.host, Controller.port);
+                        OutputStream stream = socket.getOutputStream();
+                        InputStream in = socket.getInputStream();
+                        //RTT INIT
+                        /*
+                            Para calcular o RTT estou enviando um pacote pequeno,de 5 bytes
+                            Salvo o tempo inicial
+                            Após receber um pacote de confirmação do servidor salvo o tempo final
+                            A diferença dos dois tempos é o meu RTT
+                            Em seguida coloco numa label
+                         */
+                        byte[] rttMessage = "RTTSE".getBytes();
+                        long start = System.currentTimeMillis();
+                        try {
+                            stream.write(rttMessage, 0, 5);
+                            in.read(rttMessage, 0, 5);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
+                        long end = System.currentTimeMillis();
+                        rtt = Math.abs(start - end);
+
+                        Platform.runLater(() -> lb_rtt.setText("RTT = " + rtt + "ms"));
+                        //RTT END
+                        socket.close();
+                        Thread.sleep(500);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
     }
+
 }
