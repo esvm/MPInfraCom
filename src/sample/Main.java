@@ -11,6 +11,9 @@ public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+	new Thread(new Server(2020)).start(); //Transfer
+        new Thread(new Server(2021)).start(); //RTT
+
         /*
             Esta é a classe principal
             Aqui é onde o Javafx verifica qual a primeira janela que será aberta no projeto
@@ -31,8 +34,7 @@ public class Main extends Application {
             Só é necessário um servidor, mas são possíveis vários clientes
             Para inicializar novos clientes, basta clicar várias vezes no OK na tela inicial
          */
-        new Thread(new Server(2020)).start(); //Transfer
-        new Thread(new Server(2021)).start(); //RTT
+        
     }
 
 
